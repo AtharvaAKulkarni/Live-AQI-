@@ -46,9 +46,10 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const app = express();
-app.use(cors());
+app.use(cors({ origin: "http://localhost:3000" }));
 
 const API_KEY = '76596f51f138009bbb3d66626e9deca250498f9ea7c647e7875e30a02d334e7f';
+const divy_gov_api_key = "579b464db66ec23bdd00000164d06b61dce14b4e648e436ce62dbb41";
 
 app.get('/aqi', async (req, res) => {
     const { lat, lng } = req.query;
@@ -121,19 +122,59 @@ app.get('/aqi', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch AQI data' });
     }
 });
-app.get('/location', async (req, res)=>{
+app.get('/location', async (req, res) => {
     const location = req.query.location;
-    const url=`http://api.openweathermap.org/geo/1.0/direct?q=${location}&limit=1&appid=a4ab9ecefc617c4b2df36cf9943d970d`
+    const url = `http://api.openweathermap.org/geo/1.0/direct?q=${location}&limit=1&appid=a4ab9ecefc617c4b2df36cf9943d970d`
     try {
-        const response=await axios.get(url);
-        const data=response.data[0];
-        const lat=data.lat;
-        const lng=data.lon;
+        const response = await axios.get(url);
+        const data = response.data[0];
+        const lat = data.lat;
+        const lng = data.lon;
         console.log(data)
-        return res.json({lat:lat, lng:lng})
+        return res.json({ lat: lat, lng: lng })
     }
-    catch(err){
+    catch (err) {
         console.error(err)
+    }
+})
+app.get('/layer/data/:id', async (req, res) => {
+    const PolId = req.params.id;
+    const url = `https://api.data.gov.in/resource/3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69?api-key=${divy_gov_api_key}&offset=0&limit=1000&format=json&filters%5Bpollutant_id%5D=${PolId}`;
+    try {
+        const response = await axios.get(url)
+
+        const filtered_response = response.data.records.filter((data) =>           
+        data.latitude !== undefined &&
+        data.longitude !== undefined &&
+        data.min_value !== "NA" &&
+        data.max_value !== "NA" &&
+        data.avg_value !== "NA" &&
+        data.pollutant_id !== undefined
+        ).map((data)=>({
+     latitude: parseFloat(data.latitude),
+    longitude: parseFloat(data.longitude),
+    intensity:(data.min_value + data.max_value + data.avg_value) / 3
+
+    //  return [parseFloat(data.latitude), parseFloat(data.longitude), intensity];
+}))
+  
+
+// console.log("After filter:", filtered_response.length);
+// console.log("Before filter:", response.data.records.length);
+//normalise intensities
+const allintensities=filtered_response.map((data)=>
+    {return data.intensity}
+)
+const maxIntensity = Math.max(...allintensities);
+const minIntensity = Math.min(...allintensities);
+const normalised_response=filtered_response.map((data)=>{
+    const normalized = (data.intensity - minIntensity) / (maxIntensity - minIntensity);
+    return[data.latitude,data.longitude,normalized]
+})
+         return res.json({ response: normalised_response})
+
+    } catch (Error) {
+        console.log("error finding layer data: \n", Error);
     }
 })
 app.listen(5000, () => {

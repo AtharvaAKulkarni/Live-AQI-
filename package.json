@@ -12,7 +12,7 @@
     "express": "^5.1.0",
     "framer-motion": "^12.23.0",
     "leaflet": "^1.9.4",
-    "nodemon": "^3.1.10",
+    "leaflet.heat": "^0.2.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-leaflet": "^5.0.0",
@@ -24,6 +24,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "server":"nodemon backend.js",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -43,5 +44,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }
